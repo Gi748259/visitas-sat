@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -258,12 +259,16 @@ function doLogin(){
   })
   .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
   .then(function(rows){
-    var ph={};try{ph=JSON.parse(localStorage.getItem("av_ph")||"{}");}catch(e){}
-    VS=Array.isArray(rows)?rows.map(function(row){if(!row||!row.data)return null;var v=row.data;if(ph[v.id])v.ph=ph[v.id];return v;}).filter(Boolean):[];
+    var ph={};try{ph=JSON.parse(localStorage.getItem("av_photos")||"{}");}catch(e){}
+    VS=Array.isArray(rows)?rows.map(function(row){
+      if(!row||!row.data)return null;
+      var v=row.data;if(ph[v.id])v.ph=ph[v.id];return v;
+    }).filter(Boolean):[];
     showSync("Conectado: "+VS.length+" visitas","ok");setCloud("ok");
     showTab(f.r==="m"?"PDB":"PL");
   })
   .catch(function(e){
+    console.error("loadCloud:",e.message);
     showSync("Sin conexion al servidor","err2");setCloud("err");
     showTab(f.r==="m"?"PDB":"PL");
   });
@@ -1081,10 +1086,10 @@ function loadFromCloud(cb){
     });
 }
 function saveToCloud(v){
-  showSync("Guardando...","loading");
+  showSync("Guardando en la nube...","loading");
   var vc=JSON.parse(JSON.stringify(v));
-  var ph={};try{ph=JSON.parse(localStorage.getItem("av_ph")||"{}");}catch(e){}
-  if(vc.ph&&Object.keys(vc.ph).length){ph[vc.id]=vc.ph;try{localStorage.setItem("av_ph",JSON.stringify(ph));}catch(e){}}
+  var ph={};try{ph=JSON.parse(localStorage.getItem("av_photos")||"{}");}catch(e){}
+  if(vc.ph&&Object.keys(vc.ph).length){ph[vc.id]=vc.ph;try{localStorage.setItem("av_photos",JSON.stringify(ph));}catch(e){}}
   vc.ph={};
   fetch(SURL+"/rest/v1/visitas",{
     method:"POST",
@@ -1095,7 +1100,7 @@ function saveToCloud(v){
     if(r.ok||r.status===201){showSync("Guardado correctamente","ok");setCloud("ok");}
     else{r.text().then(function(t){showSync("Error al guardar","err2");console.error("save:",r.status,t);});}
   })
-  .catch(function(e){showSync("Sin conexion","err2");setCloud("err");console.error("save:",e.message);});
+  .catch(function(e){showSync("Sin conexion","err2");setCloud("err");console.error("save catch:",e.message);});
 }
 function updateCloud(v){
   var vc=JSON.parse(JSON.stringify(v));vc.ph={};
@@ -1103,7 +1108,7 @@ function updateCloud(v){
     method:"PATCH",
     headers:{"Content-Type":"application/json","apikey":SKEY,"Authorization":"Bearer "+SKEY,"Prefer":"return=representation"},
     body:JSON.stringify({data:vc})
-  }).catch(function(e){console.error("update:",e.message);});
+  }).catch(function(e){console.error("updateCloud:",e.message);});
 }
 
 // Override doLogin to load from cloud
@@ -1159,10 +1164,10 @@ function loadFromCloud(cb){
     });
 }
 function saveToCloud(v){
-  showSync("Guardando...","loading");
+  showSync("Guardando en la nube...","loading");
   var vc=JSON.parse(JSON.stringify(v));
-  var ph={};try{ph=JSON.parse(localStorage.getItem("av_ph")||"{}");}catch(e){}
-  if(vc.ph&&Object.keys(vc.ph).length){ph[vc.id]=vc.ph;try{localStorage.setItem("av_ph",JSON.stringify(ph));}catch(e){}}
+  var ph={};try{ph=JSON.parse(localStorage.getItem("av_photos")||"{}");}catch(e){}
+  if(vc.ph&&Object.keys(vc.ph).length){ph[vc.id]=vc.ph;try{localStorage.setItem("av_photos",JSON.stringify(ph));}catch(e){}}
   vc.ph={};
   fetch(SURL+"/rest/v1/visitas",{
     method:"POST",
@@ -1173,7 +1178,7 @@ function saveToCloud(v){
     if(r.ok||r.status===201){showSync("Guardado correctamente","ok");setCloud("ok");}
     else{r.text().then(function(t){showSync("Error al guardar","err2");console.error("save:",r.status,t);});}
   })
-  .catch(function(e){showSync("Sin conexion","err2");setCloud("err");console.error("save:",e.message);});
+  .catch(function(e){showSync("Sin conexion","err2");setCloud("err");console.error("save catch:",e.message);});
 }
 function updateCloud(v){
   var vc=JSON.parse(JSON.stringify(v));vc.ph={};
@@ -1181,7 +1186,7 @@ function updateCloud(v){
     method:"PATCH",
     headers:{"Content-Type":"application/json","apikey":SKEY,"Authorization":"Bearer "+SKEY,"Prefer":"return=representation"},
     body:JSON.stringify({data:vc})
-  }).catch(function(e){console.error("update:",e.message);});
+  }).catch(function(e){console.error("updateCloud:",e.message);});
 }
 
 
@@ -1247,57 +1252,38 @@ function renderGantt(){
   });
   var manual=[];try{manual=JSON.parse(localStorage.getItem("av_manual")||"[]");}catch(e){}
   manual.forEach(function(c){allCM.push(c);});
-
   var withDate=allCM.filter(function(c){return c.en;});
+  var totCM=allCM.length;
   var cards="";
   if(!withDate.length){
-    var totCM=0;VS.forEach(function(v){totCM+=(v.cm||[]).length;});
     cards=totCM>0
       ?'<div class="card" style="border-color:#F59E0B;text-align:center;padding:20px"><p style="font-size:22px">📅</p><p style="font-size:14px;font-weight:700;margin-top:8px">'+totCM+' compromiso(s) sin fecha limite</p><p style="font-size:12px;color:#9CA3AF;margin-top:6px">Asigna fecha limite al crear compromisos.</p></div>'
       :'<div style="text-align:center;padding:32px;color:#6B7280"><p style="font-size:32px">📋</p><p style="margin-top:8px">No hay compromisos aun.</p></div>';
   } else {
     withDate.forEach(function(c){
-      var ov=c.st!=="cerrado"&&new Date(c.en+"T23:59:59")<now;
-      var clr=c.st==="cerrado"?"#16A34A":ov?"#DC2626":"#2563EB";
-      var lbl=c.st==="cerrado"?"CERRADO":ov?"VENCIDO":c.st==="en proceso"?"EN PROCESO":"PENDIENTE";
-      var editSel=CU.r==="m"?'<select data-vid="'+c.visitId+'" data-cid="'+c.id+'" class="GSEL" style="background:#1F2937;border:1px solid #374151;border-radius:4px;color:'+clr+';font-size:12px;padding:5px 8px;margin-top:8px;width:100%"><option value="pendiente"'+(c.st==="pendiente"?" selected":"")+'>Pendiente</option><option value="en proceso"'+(c.st==="en proceso"?" selected":"")+'>En proceso</option><option value="cerrado"'+(c.st==="cerrado"?" selected":"")+'>Cerrado</option></select>'
-        +(c.manual?'<button class="DELGM" data-id="'+c.id+'" style="background:#7F1D1D;color:#FCA5A5;border:none;border-radius:4px;padding:5px 8px;font-size:12px;cursor:pointer;margin-top:4px;width:100%">Eliminar</button>':""):"";
-      cards+='<div style="background:#111827;border-left:4px solid '+clr+';border:1px solid #1F2937;border-left-width:4px;border-radius:8px;padding:12px;margin-bottom:8px">'
-        +'<div style="display:flex;justify-content:space-between;gap:8px">'
-        +'<div style="flex:1"><p style="font-size:13px;font-weight:700;color:#F9FAFB">'+c.tx+'</p>'
-        +'<p style="font-size:11px;color:#9CA3AF;margin-top:3px">'+(c.rp||"Sin responsable")+'</p>'
-        +'<p style="font-size:11px;color:#6B7280">'+(c.visitClient||"Manual")+'</p></div>'
-        +'<div style="text-align:right;flex-shrink:0"><span style="background:'+clr+'22;color:'+clr+';border:1px solid '+clr+';border-radius:4px;padding:3px 8px;font-size:11px;font-weight:700">'+lbl+'</span>'
-        +'<p style="font-size:10px;color:#9CA3AF;margin-top:4px">'+fd(c.en)+'</p></div></div>'
-        +editSel+'</div>';
+      var isOv=c.st!=="cerrado"&&c.en&&new Date(c.en+"T23:59:59")<now;
+      var clr=c.st==="cerrado"?"#16A34A":isOv?"#DC2626":"#2563EB";
+      var lbl=c.st==="cerrado"?"CERRADO":isOv?"VENCIDO":c.st==="en proceso"?"EN PROCESO":"PENDIENTE";
+      var editSel=CU.r==="m"
+        ?'<select data-vid="'+c.visitId+'" data-cid="'+c.id+'" class="GSEL" style="background:#1F2937;border:1px solid #374151;border-radius:4px;color:'+clr+';font-size:12px;padding:5px 8px;margin-top:8px;width:100%"><option value="pendiente"'+(c.st==="pendiente"?" selected":"")+'>Pendiente</option><option value="en proceso"'+(c.st==="en proceso"?" selected":"")+'>En proceso</option><option value="cerrado"'+(c.st==="cerrado"?" selected":"")+'>Cerrado</option></select>'
+          +(c.manual?'<button class="DELGM" data-id="'+c.id+'" style="background:#7F1D1D;color:#FCA5A5;border:none;border-radius:4px;padding:5px 8px;font-size:12px;cursor:pointer;margin-top:4px;width:100%">Eliminar</button>':""): "";
+      cards+='<div style="background:#111827;border-left:4px solid '+clr+';border:1px solid #1F2937;border-radius:8px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><div style="flex:1"><p style="font-size:13px;font-weight:700;color:#F9FAFB">'+c.tx+'</p><p style="font-size:11px;color:#9CA3AF;margin-top:3px">'+(c.rp||"Sin responsable")+'</p><p style="font-size:11px;color:#6B7280">'+(c.visitClient||"Manual")+'</p></div><div style="text-align:right;flex-shrink:0"><span style="background:'+clr+'22;color:'+clr+';border:1px solid '+clr+';border-radius:4px;padding:3px 8px;font-size:11px;font-weight:700">'+lbl+'</span><p style="font-size:10px;color:#9CA3AF;margin-top:4px">'+fd(c.en)+'</p></div></div>'+editSel+'</div>';
     });
   }
-
-  var addManual='<div class="card" style="margin-bottom:14px"><p class="stitle">Agregar tarea manual</p>'
-    +'<textarea id="GMTX" rows="2" placeholder="Descripcion de la tarea..." style="background:#0D1117;border:1px solid #374151;border-radius:6px;color:#F9FAFB;padding:9px 12px;width:100%;font-size:14px;margin-bottom:8px"></textarea>'
+  var manHTML='<div class="card" style="margin-bottom:14px"><p class="stitle">Agregar tarea manual</p>'
+    +'<div style="margin-bottom:8px"><label>Descripcion</label><textarea id="GMTX" rows="2" placeholder="Tarea a realizar..." style="background:#0D1117;border:1px solid #374151;border-radius:6px;color:#F9FAFB;padding:9px 12px;width:100%;font-size:14px"></textarea></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
     +'<div><label>Fecha limite</label><input type="date" id="GMEN" style="background:#0D1117;border:1px solid #374151;border-radius:6px;color:#F9FAFB;padding:9px 12px;width:100%;font-size:14px"/></div>'
     +'<div><label>Responsable</label><select id="GMRP" style="background:#0D1117;border:1px solid #374151;border-radius:6px;color:#F9FAFB;padding:9px 12px;width:100%;font-size:14px"><option value="">Sin asignar</option><option>Jorge Carrasco</option><option>Carlos Contreras</option><option>Paola Ojeda</option><option>G. Comercial</option></select></div>'
     +'</div><button id="ADDGM" class="btn-green" style="width:100%;padding:10px">+ Agregar tarea</button></div>';
-
-  var legend='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">'
-    +'<span style="font-size:12px;font-weight:700;color:#16A34A">■ VERDE=Cerrado</span>'
-    +'<span style="font-size:12px;font-weight:700;color:#DC2626">■ ROJO=Vencido</span>'
-    +'<span style="font-size:12px;font-weight:700;color:#2563EB">■ AZUL=En plazo</span></div>';
-
-  var exportBtns='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
-    +'<button id="GPDF" class="btn-red" style="padding:8px 16px;font-size:13px">Exportar PDF</button>'
-    +'<button id="GXLS" class="btn-green" style="padding:8px 16px;font-size:13px">Exportar Excel</button>'
-    +'<span style="font-size:12px;color:#9CA3AF;align-self:center">'+withDate.length+' tareas</span></div>';
-
-  el.innerHTML=exportBtns+addManual+legend+cards;
-
+  var legend='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px"><span style="font-size:12px;font-weight:700;color:#16A34A">■ VERDE=Cerrado</span><span style="font-size:12px;font-weight:700;color:#DC2626">■ ROJO=Vencido</span><span style="font-size:12px;font-weight:700;color:#2563EB">■ AZUL=En plazo</span></div>';
+  var exportBtns='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"><button id="GPDF" class="btn-red" style="padding:8px 16px;font-size:13px">Exportar PDF</button><button id="GXLS" class="btn-green" style="padding:8px 16px;font-size:13px">Exportar Excel</button><span style="font-size:12px;color:#9CA3AF;align-self:center">'+withDate.length+' tareas</span></div>';
+  el.innerHTML=exportBtns+manHTML+legend+cards;
   var ag=G("ADDGM");if(ag)ag.onclick=function(){
     var t=G("GMTX")?G("GMTX").value.trim():"";if(!t){alert("Escribe la descripcion.");return;}
     var ms=[];try{ms=JSON.parse(localStorage.getItem("av_manual")||"[]");}catch(e){}
     ms.push({id:uid(),tx:t,si:new Date().toISOString().slice(0,10),en:G("GMEN")?G("GMEN").value:"",rp:G("GMRP")?G("GMRP").value:"",st:"pendiente",manual:true,visitId:null,visitClient:"Manual",supervisor:"Gerencia"});
-    localStorage.setItem("av_manual",JSON.stringify(ms));
-    G("GMTX").value="";renderGantt();
+    localStorage.setItem("av_manual",JSON.stringify(ms));renderGantt();
   };
   el.querySelectorAll(".GSEL").forEach(function(s){s.onchange=function(){
     var vid=this.getAttribute("data-vid"),cid=this.getAttribute("data-cid"),st=this.value;
@@ -1308,20 +1294,18 @@ function renderGantt(){
   el.querySelectorAll(".DELGM").forEach(function(b){b.onclick=function(){var ms=[];try{ms=JSON.parse(localStorage.getItem("av_manual")||"[]");}catch(e){}ms=ms.filter(function(c){return c.id!==b.getAttribute("data-id");});localStorage.setItem("av_manual",JSON.stringify(ms));renderGantt();};});
   var gpdf=G("GPDF");if(gpdf)gpdf.onclick=function(){
     var win=window.open("","_blank");if(!win){alert("Permite ventanas emergentes.");return;}
-    var logo=LG;
-    win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Gantt ACA</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#f5f5f5;padding:8px;text-align:left;font-size:11px;text-transform:uppercase}td{padding:8px;border-bottom:1px solid #eee}.c{background:#D1FAE5;color:#065F46;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700}.v{background:#FEE2E2;color:#991B1B;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700}.e{background:#DBEAFE;color:#1E40AF;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700}.p{background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700}@media print{body{padding:8px}}</style></head><body>'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:3px solid #EF4444;padding-bottom:12px"><div style="display:flex;align-items:center;gap:10px"><img src="'+logo+'" style="height:40px;border-radius:6px"/><div><p style="font-size:18px;font-weight:700;margin:0">Auxiliar Conservera</p><p style="color:#6B7280;font-size:12px">Carta Gantt - Plan de Accion</p></div></div><p style="font-size:12px;color:#6B7280">'+new Date().toLocaleDateString("es-CL")+'</p></div>'
-      +'<table><thead><tr><th>Actividad</th><th>Responsable</th><th>Cliente</th><th>Fecha Limite</th><th>Estado</th></tr></thead><tbody>'
-      +withDate.map(function(c){var ov2=c.st!=="cerrado"&&new Date((c.en||"")+"T23:59:59")<now;var cls=c.st==="cerrado"?"c":ov2?"v":c.st==="en proceso"?"e":"p";var lbl2=c.st==="cerrado"?"CERRADO":ov2?"VENCIDO":c.st==="en proceso"?"EN PROCESO":"PENDIENTE";return'<tr><td>'+c.tx+'</td><td>'+(c.rp||"—")+'</td><td>'+(c.visitClient||"Manual")+'</td><td>'+fd(c.en)+'</td><td><span class="'+cls+'">'+lbl2+'</span></td></tr>';}).join("")
-      +'</tbody></table><div style="margin-top:20px;text-align:center"><button onclick="window.print()" style="background:#EF4444;color:#fff;border:none;padding:10px 24px;border-radius:6px;font-size:14px;cursor:pointer">Imprimir / PDF</button></div></body></html>');
+    win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Gantt ACA</title><style>body{font-family:Arial;padding:24px;color:#111}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#f5f5f5;padding:8px;text-align:left;font-size:11px;text-transform:uppercase}td{padding:8px;border-bottom:1px solid #eee}.c{background:#D1FAE5;color:#065F46;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700}.v{background:#FEE2E2;color:#991B1B;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700}.p{background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:700}@media print{body{padding:8px}}</style></head><body>');
+    win.document.write('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:3px solid #EF4444;padding-bottom:12px"><div style="display:flex;align-items:center;gap:10px"><img src="'+LG+'" style="height:40px;border-radius:6px"/><div><p style="font-size:18px;font-weight:700;margin:0">Auxiliar Conservera</p><p style="color:#6B7280;font-size:12px">Carta Gantt</p></div></div><p style="font-size:12px;color:#6B7280">'+new Date().toLocaleDateString("es-CL")+'</p></div>');
+    win.document.write('<table><thead><tr><th>Actividad</th><th>Responsable</th><th>Cliente</th><th>Fecha Limite</th><th>Estado</th></tr></thead><tbody>');
+    withDate.forEach(function(c){var isOv2=c.st!=="cerrado"&&new Date((c.en||"")+"T23:59:59")<now;var cls=c.st==="cerrado"?"c":isOv2?"v":"p";var lbl2=c.st==="cerrado"?"CERRADO":isOv2?"VENCIDO":"PENDIENTE";win.document.write('<tr><td>'+c.tx+'</td><td>'+(c.rp||"—")+'</td><td>'+(c.visitClient||"Manual")+'</td><td>'+fd(c.en)+'</td><td><span class="'+cls+'">'+lbl2+'</span></td></tr>');});
+    win.document.write('</tbody></table><div style="margin-top:20px;text-align:center"><button onclick="window.print()" style="background:#EF4444;color:#fff;border:none;padding:10px 24px;border-radius:6px;font-size:14px;cursor:pointer">Imprimir / PDF</button></div></body></html>');
     win.document.close();
   };
   var gxls=G("GXLS");if(gxls)gxls.onclick=function(){
     var now2=new Date();
-    var rows=[["Actividad","Responsable","Cliente","Fecha Limite","Estado"]].concat(withDate.map(function(c){var ov3=c.st!=="cerrado"&&new Date((c.en||"")+"T23:59:59")<now2;var st=c.st==="cerrado"?"CERRADO":ov3?"VENCIDO":c.st.toUpperCase();return[c.tx,c.rp||"",c.visitClient||"Manual",c.en||"",st];}));
-    var csv=rows.map(function(r){return r.map(function(x){return'"'+String(x).replace(/"/g,"''")+'"';}).join(",");}).join("
-");
-    var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"}));a.download="gantt_"+new Date().toISOString().slice(0,10)+".csv";a.click();
+    var rows=[["Actividad","Responsable","Cliente","Fecha Limite","Estado"]].concat(withDate.map(function(c){var isOv3=c.st!=="cerrado"&&new Date((c.en||"")+"T23:59:59")<now2;var st=c.st==="cerrado"?"CERRADO":isOv3?"VENCIDO":c.st.toUpperCase();return[c.tx,c.rp||"",c.visitClient||"Manual",c.en||"",st];}));
+    var csv=rows.map(function(r){return r.map(function(x){return'"'+String(x).replace(/"/g,"''")+'"';}).join(",");}).join("\n");
+    var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}));a.download="gantt_"+new Date().toISOString().slice(0,10)+".csv";a.click();
   };
 }
 
@@ -1335,21 +1319,19 @@ function renderKPI(){
     var aC=[];myV.forEach(function(v){(v.cm||[]).forEach(function(c){aC.push(c);});});
     var tot=aC.length,cls=aC.filter(function(c){return c.st==="cerrado";}).length;
     var ovr=aC.filter(function(c){return c.st!=="cerrado"&&c.en&&new Date(c.en+"T23:59:59")<now;}).length;
-    var onT=aC.filter(function(c){return c.st==="cerrado"&&c.en&&new Date(c.en+"T23:59:59")>=now;}).length;
+    var onT=aC.filter(function(c){return c.st==="cerrado"&&(!c.en||new Date(c.en+"T23:59:59")>=now);}).length;
     var objSi=myV.filter(function(v){return v.om==="Si";}).length;
     var pct=tot?Math.round(cls/tot*100):0;
     var onTPct=cls?Math.round(onT/cls*100):0;
     var objPct=myV.length?Math.round(objSi/myV.length*100):0;
     var clr=pct>=80?"#10B981":pct>=50?"#F59E0B":"#EF4444";
-    h+='<div class="card" style="margin-bottom:16px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><p style="font-size:15px;font-weight:700">'+sn+'</p><span style="font-size:11px;color:#9CA3AF">'+myV.length+' visitas</span></div>'
+    h+='<div class="card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><p style="font-size:15px;font-weight:700">'+sn+'</p><span style="font-size:11px;color:#9CA3AF">'+myV.length+' visitas</span></div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'
-      +'<div style="background:#0D1117;border-radius:6px;padding:10px;text-align:center"><p style="font-size:24px;font-weight:800;color:'+clr+';font-family:monospace">'+pct+'%</p><p style="font-size:10px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-top:3px">Compromisos cerrados</p></div>'
-      +'<div style="background:#0D1117;border-radius:6px;padding:10px;text-align:center"><p style="font-size:24px;font-weight:800;color:#10B981;font-family:monospace">'+objPct+'%</p><p style="font-size:10px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-top:3px">Objetivos cumplidos</p></div>'
-      +'<div style="background:#0D1117;border-radius:6px;padding:10px;text-align:center"><p style="font-size:24px;font-weight:800;color:#3B82F6;font-family:monospace">'+onTPct+'%</p><p style="font-size:10px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-top:3px">Cerrados a tiempo</p></div>'
-      +'<div style="background:#0D1117;border-radius:6px;padding:10px;text-align:center"><p style="font-size:24px;font-weight:800;color:#EF4444;font-family:monospace">'+ovr+'</p><p style="font-size:10px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-top:3px">Vencidos sin cerrar</p></div>'
-      +'</div>'
-      +'<p style="font-size:10px;color:#9CA3AF;margin-bottom:4px">Progreso general</p>'
+      +'<div style="background:#0D1117;border-radius:6px;padding:10px;text-align:center"><p style="font-size:24px;font-weight:800;color:'+clr+';font-family:monospace">'+pct+'%</p><p style="font-size:10px;color:#9CA3AF;text-transform:uppercase;margin-top:3px">Compromisos cerrados</p></div>'
+      +'<div style="background:#0D1117;border-radius:6px;padding:10px;text-align:center"><p style="font-size:24px;font-weight:800;color:#10B981;font-family:monospace">'+objPct+'%</p><p style="font-size:10px;color:#9CA3AF;text-transform:uppercase;margin-top:3px">Objetivos cumplidos</p></div>'
+      +'<div style="background:#0D1117;border-radius:6px;padding:10px;text-align:center"><p style="font-size:24px;font-weight:800;color:#3B82F6;font-family:monospace">'+onTPct+'%</p><p style="font-size:10px;color:#9CA3AF;text-transform:uppercase;margin-top:3px">Cerrados a tiempo</p></div>'
+      +'<div style="background:#0D1117;border-radius:6px;padding:10px;text-align:center"><p style="font-size:24px;font-weight:800;color:#EF4444;font-family:monospace">'+ovr+'</p><p style="font-size:10px;color:#9CA3AF;text-transform:uppercase;margin-top:3px">Vencidos sin cerrar</p></div>'
+      +'</div><p style="font-size:10px;color:#9CA3AF;margin-bottom:4px">Progreso</p>'
       +'<div style="background:#1F2937;border-radius:4px;height:10px"><div style="background:'+clr+';border-radius:4px;height:10px;width:'+pct+'%"></div></div>'
       +'<p style="font-size:10px;color:#9CA3AF;margin-top:4px">'+cls+'/'+tot+' cerrados · '+ovr+' vencidos</p></div>';
   });
@@ -1358,8 +1340,7 @@ function renderKPI(){
   var gOvr=allC.filter(function(c){return c.st!=="cerrado"&&c.en&&new Date(c.en+"T23:59:59")<now;}).length;
   var gPct=allC.length?Math.round(gCls/allC.length*100):0;
   var gClr=gPct>=80?"#10B981":gPct>=50?"#F59E0B":"#EF4444";
-  h+='<div style="background:#0D1117;border:2px solid #EF4444;border-radius:8px;padding:16px">'
-    +'<p style="font-size:11px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">KPI Global</p>'
+  h+='<div style="background:#0D1117;border:2px solid #EF4444;border-radius:8px;padding:16px"><p style="font-size:11px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">KPI Global</p>'
     +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
     +'<div style="text-align:center"><p style="font-size:24px;font-weight:800;color:'+gClr+';font-family:monospace">'+gPct+'%</p><p style="font-size:10px;color:#9CA3AF">Cumplimiento</p></div>'
     +'<div style="text-align:center"><p style="font-size:24px;font-weight:800;color:#F59E0B;font-family:monospace">'+gOvr+'</p><p style="font-size:10px;color:#9CA3AF">Vencidos</p></div>'
@@ -1373,4 +1354,3 @@ function renderKPI(){
 <div style="text-align:center;padding:16px 0 24px;color:#6B7280;font-size:12px;letter-spacing:2px;font-weight:700">@GG ACA Chile</div>
 </body>
 </html>
-
