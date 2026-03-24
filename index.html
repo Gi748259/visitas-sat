@@ -167,13 +167,23 @@ label{display:block;margin-bottom:4px;color:#9CA3AF;font-size:11px;font-weight:7
         <div class="card">
           <p class="stitle">Compromisos y Plan de Accion</p>
           <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px">
-            <input id="CT" placeholder="Descripcion del compromiso..."/>
-            <input type="date" id="CS" title="Inicio"/>
-            <input type="date" id="CE" title="Termino"/>
+            <input id="CT" placeholder="Descripcion del compromiso..." style="margin-bottom:8px"/>
           </div>
-          <div style="display:flex;gap:8px;margin-bottom:12px">
-            <input id="CR2" placeholder="Responsable" style="flex:1"/>
-            <button id="ADDC" class="btn-red" style="padding:8px 14px;white-space:nowrap">+ Agregar</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div><label style="font-size:10px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px">Fecha limite</label>
+            <input type="date" id="CE"/></div>
+            <div><label style="font-size:10px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px">Responsable</label>
+            <select id="CR2" style="background:#111827;border:1px solid #374151;border-radius:6px;color:#F9FAFB;padding:8px 10px;width:100%;font-size:13px">
+              <option value="">Seleccionar...</option>
+              <option value="Jorge Carrasco">Jorge Carrasco</option>
+              <option value="Carlos Contreras">Carlos Contreras</option>
+              <option value="Paola Ojeda">Paola Ojeda</option>
+              <option value="Claudio Vega">Claudio Vega</option>
+              <option value="Otro Tecnico">Otro Tecnico</option>
+            </select></div>
+          </div>
+          <div style="margin-bottom:12px">
+            <button id="ADDC" class="btn-red" style="width:100%;padding:10px;font-size:14px">+ Agregar Compromiso</button>
           </div>
           <div id="CL"></div>
           <div id="GW" style="display:none;margin-top:14px">
@@ -190,8 +200,8 @@ label{display:block;margin-bottom:4px;color:#9CA3AF;font-size:11px;font-weight:7
     </div>
 
     <div id="PD" class="pg"><div id="DC"></div></div>
-    <div id="PGT" class="pg"></div>
-    <div id="PKP" class="pg"></div>
+    <div id="PGT" class="pg"><h2 style="font-size:17px;border-left:3px solid #EF4444;padding-left:10px;margin-bottom:16px">Carta Gantt</h2><div id="GTTCONT"></div></div>
+    <div id="PKP" class="pg"><h2 style="font-size:17px;border-left:3px solid #EF4444;padding-left:10px;margin-bottom:16px">KPIs de Cumplimiento</h2><div id="KPICONT"></div></div>
 
     <div id="PDB" class="pg">
       <h2 style="font-size:17px;border-left:3px solid #EF4444;padding-left:10px;margin-bottom:16px">Panel Gerencia</h2>
@@ -491,9 +501,10 @@ function initForm(){
   renderCL();
 }
 function addC(){
-  var t=G("CT").value; if(!t) return;
-  FC.push({id:uid(),tx:t,si:G("CS").value,en:G("CE").value,rp:G("CR2").value,st:"pendiente"});
-  G("CT").value=""; G("CS").value=""; G("CE").value=""; G("CR2").value="";
+  var t=G("CT").value.trim(); if(!t){alert("Escribe la descripcion.");return;}
+  var visitDate=G("FD")?G("FD").value:new Date().toISOString().slice(0,10);
+  FC.push({id:uid(),tx:t,si:visitDate,en:G("CE").value,rp:G("CR2")?G("CR2").value:"",st:"pendiente"});
+  G("CT").value=""; G("CE").value=""; if(G("CR2"))G("CR2").value="";
   renderCL();
 }
 function renderCL(){
