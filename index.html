@@ -487,6 +487,7 @@ function initForm(){
   G("CS").value=""; G("CE").value="";
   G("FD").value=new Date().toISOString().slice(0,10);
   G("FT").value=new Date().toTimeString().slice(0,5);
+  if(G("CE")) G("CE").value=new Date().toISOString().slice(0,10);
   G("FC").value=""; G("OCW").style.display="none"; G("DW").style.display="none";
   document.querySelectorAll("input[type=radio]").forEach(function(r){r.checked=false;});
   for(var i=0;i<6;i++){var pv=G("PV"+i);if(pv){pv.style.display="none";}var fp=G("FPH"+i);if(fp)fp.value="";}
@@ -719,20 +720,27 @@ function editVisit(id){
 
 // ── GANTT GERENCIA ────────────────────────────────────────────────────────────
 function renderGantt(){
-  var el=G("PGT"); if(!el) return;
-  // Collect all commitments from all visits + manual tasks from localStorage
+  var el=G("GTTCONT"); if(!el) return;
   var manual=[];
   try{manual=JSON.parse(localStorage.getItem("av_manual")||"[]");}catch(e){manual=[];}
-  
   var allCM=[];
   VS.forEach(function(v){
     var cn=v.cl==="Otro"?v.clo:v.cl;
     (v.cm||[]).forEach(function(c){
-      allCM.push({id:c.id,tx:c.tx,rp:c.rp,si:c.si,en:c.en,st:c.st,
+      allCM.push({id:c.id,tx:c.tx,rp:c.rp,si:c.si||v.dt,en:c.en,st:c.st,
         visitId:v.id,visitClient:cn,supervisor:v.su,manual:false});
     });
   });
   manual.forEach(function(c){allCM.push(c);});
+  // Si no hay visitas cargadas, mostrar boton actualizar
+  if(VS.length===0){
+    el.innerHTML='<div style="text-align:center;padding:32px;color:#6B7280">'
+      +'<p style="font-size:32px">📋</p>'
+      +'<p style="margin-top:8px;margin-bottom:16px">Carga las visitas primero</p>'
+      +'<button onclick="loadFromCloud(function(){renderGantt();})" class="btn-green" style="padding:10px 24px">Actualizar visitas</button>'
+      +'</div>';
+    return;
+  }
 
   // Build 6-month weekly grid
   var now=new Date();
@@ -892,7 +900,7 @@ function renderGantt(){
 
 // ── KPI GERENCIA ──────────────────────────────────────────────────────────────
 function renderKPI(){
-  var el=G("PKP"); if(!el) return;
+  var el=G("KPICONT"); if(!el) return;
   var SUPS=US.filter(function(u){return u.r==="s";});
   var now=new Date();
 
